@@ -1,4 +1,4 @@
-def chinese_chess(mode='unicoe'):
+def chinese_chess(mode='unicode'):
     pieces_chinese = '帅仕相马车炮兵将士象馬車砲卒'
     pieces_unicode = U''.join(chr(0x1FA60 + i) for i in range(14))
     # king advisor elephant rook cannon horse pawn
