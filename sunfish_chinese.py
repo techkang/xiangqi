@@ -11,6 +11,9 @@ from itertools import count
 # Piece-Square tables. Tune these to change sunfish's behaviour
 ###############################################################################
 
+BOARD_ROW = 10
+BOARD_COLUMN = 9
+# king, advisor, elephant, horse, rook, pawn, cannon
 piece = {'K': 6000, 'A': 120, 'E': 120, 'H': 270, 'R': 600, 'P': 30, 'C': 285}
 pst = {
     'K': (
@@ -28,7 +31,7 @@ pst = {
     'A': (
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 3, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, -1, 0, -1, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -42,7 +45,7 @@ pst = {
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         -2, 0, 0, 0, 3, 0, 0, 0, -2,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, -1, 0, 0, 0, -1, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -101,7 +104,7 @@ pst = {
 }
 # Pad tables and join piece and pst dictionaries
 for k, table in pst.items():
-    padrow = lambda row: (0,) + tuple(x + piece[k] for x in row) + (0,)
+    def padrow(row): return (0,) + tuple(x + piece[k] for x in row) + (0,)
     pst[k] = sum((padrow(table[i * 9:i * 9 + 9]) for i in range(10)), ())
     pst[k] = (0,) * 22 + pst[k] + (0,) * 22
 
@@ -130,7 +133,7 @@ initial = (
 )
 
 # Lists of possible moves for each piece type.
-N, E, S, W = -11, 1, 11, -1
+N, E, S, W = -(BOARD_COLUMN+2), 1, BOARD_COLUMN+2, -1
 directions = {
     'P': (N, W, E),
     'H': ((N, N + E), (N, N + W), (S, S + E), (S, S + W), (E, E + N), (E, E + S), (W, W + N), (W, W + S)),
@@ -146,8 +149,10 @@ directions = {
 # 8 queens up, but we got the king, we still exceed MATE_VALUE.
 # When a MATE is detected, we'll set the score to MATE_UPPER - plies to get there
 # E.g. Mate in 3 will be MATE_UPPER - 6
-MATE_LOWER = piece['K'] - 2 * (piece['R'] + piece['H'] + piece['C'] + piece['A'] + piece['E'] + 2.5 * piece['P'])
-MATE_UPPER = piece['K'] + 2 * (piece['R'] + piece['H'] + piece['C'] + piece['A'] + piece['E'] + 2.5 * piece['P'])
+MATE_LOWER = piece['K'] - 2 * (piece['R'] + piece['H'] +
+                               piece['C'] + piece['A'] + piece['E'] + 2.5 * piece['P'])
+MATE_UPPER = piece['K'] + 2 * (piece['R'] + piece['H'] +
+                               piece['C'] + piece['A'] + piece['E'] + 2.5 * piece['P'])
 
 # The table size is the maximum number of elements in the transposition table.
 TABLE_SIZE = 1e7
@@ -164,14 +169,14 @@ DRAW_TEST = True
 
 class Position(namedtuple('Position', 'board score')):
     """ A state of a chess game
-    board -- a 120 char representation of the board
+    board -- a (BOARD_ROW+4)*(BOARD_COLUMN+2) char representation of the board
     score -- the board evaluation
     """
 
     def gen_moves(self):
         # For each of our pieces, iterate through each possible 'ray' of moves,
         # as defined in the 'directions' map. The rays are broken e.g. by
-        # captures or immediately in case of pieces such as knights.
+        # captures or immediately in case of pieces such as horse.
         for i, p in enumerate(self.board):
             if not p.isupper():
                 continue
@@ -197,20 +202,25 @@ class Position(namedtuple('Position', 'board score')):
                                 break
                             else:
                                 continue
+                        # cannon need a carriage to attack opponent
                         elif q.isalpha():
                             cannon_flag = True
                             continue
+                    # horse and elephant leg should not be crappy
                     if p in ('H', 'E') and self.board[i + step] != '.':
                         break
-
+                    # king and advisor should stay in palace
                     if p in ('A', 'K'):
                         row, column = j // 11, j % 11
                         if not (9 <= row <= 11 and 4 <= column <= 6):
                             break
+                    # elephant cannot go across river
                     if p == 'E' and not 6 <= j // 11 <= 11:
                         break
+                    # pawn can move east or west only after crossing river
                     if p == 'P' and j // 11 > 6 and d in (E, W):
                         break
+                    # two kings cannot see each other
                     black_king = self.board.index('k')
                     red_king = self.board.index('K')
                     if p == 'K' and black_king // 11 == j // 11:
@@ -234,15 +244,9 @@ class Position(namedtuple('Position', 'board score')):
                     yield i, j
                     if p in 'HPEAK' or q.islower():
                         break
-                    # Stop crawlers from sliding, and sliding after captures
 
     def rotate(self):
-        """ Rotates the board, preserving enpassant """
-        return Position(
-            self.board[::-1].swapcase(), -self.score)
-
-    def nullmove(self):
-        """ Like rotate, but clears ep and kp """
+        """ Rotates the board"""
         return Position(
             self.board[::-1].swapcase(), -self.score)
 
@@ -262,11 +266,13 @@ class Position(namedtuple('Position', 'board score')):
     def value(self, move):
         i, j = move
         p, q = self.board[i], self.board[j]
+        MOVE_COST = 5
         # Actual move
-        score = pst[p][j] - pst[p][i] - 5
+        score = pst[p][j] - pst[p][i] - MOVE_COST
         # Capture
         if q.islower():
-            score += pst[q.upper()][153 - j] + piece[q.upper()]
+            score += pst[q.upper()][(BOARD_ROW+4) *
+                                    (BOARD_COLUMN+2)-1 - j] + piece[q.upper()]
         return score
 
 
@@ -317,7 +323,8 @@ class Searcher:
         # Look in the table if we have already searched this position before.
         # We also need to be sure, that the stored search was over the same
         # nodes as the current search.
-        entry = self.tp_score.get((pos, depth, root), Entry(-MATE_UPPER, MATE_UPPER))
+        entry = self.tp_score.get(
+            (pos, depth, root), Entry(-MATE_UPPER, MATE_UPPER))
         if entry.lower >= gamma and (not root or self.tp_move.get(pos) is not None):
             return entry.lower
         if entry.upper < gamma:
@@ -331,8 +338,8 @@ class Searcher:
         def moves():
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
-            if depth > 0 and not root and any(c in pos.board for c in 'RBNQ'):
-                yield None, -self.bound(pos.nullmove(), 1 - gamma, depth - 3, root=False)
+            if depth > 0 and not root and any(c in pos.board for c in 'RHCP'):
+                yield None, -self.bound(pos.rotate(), 1 - gamma, depth - 3, root=False)
             # For QSearch we have a different kind of null-move, namely we can just stop
             # and not capture anything else.
             if depth == 0:
@@ -375,9 +382,10 @@ class Searcher:
         # but only if depth == 1, so that's probably fair enough.
         # (Btw, at depth 1 we can also mate without realizing.)
         if best < gamma and best < 0 and depth > 0:
-            is_dead = lambda pos: any(pos.value(m) >= MATE_LOWER for m in pos.gen_moves())
+            def is_dead(pos): return any(pos.value(m) >=
+                                         MATE_LOWER for m in pos.gen_moves())
             if all(is_dead(pos.move(m)) for m in pos.gen_moves()):
-                in_check = is_dead(pos.nullmove())
+                in_check = is_dead(pos.rotate())
                 best = -MATE_UPPER if in_check else 0
 
         # Clear before setting, so we always have a value
@@ -426,16 +434,16 @@ class Searcher:
 # User interface
 ###############################################################################
 
-A1 = 111
+A1 = BOARD_ROW*(BOARD_COLUMN+2)+1
 
 
 def parse(c):
     fil, rank = ord(c[0]) - ord('a'), int(c[1]) - 1
-    return A1 + fil - 11 * rank
+    return A1 + fil - (BOARD_COLUMN+2) * rank
 
 
 def render(i):
-    rank, fil = divmod(i - A1, 11)
+    rank, fil = divmod(i - A1, BOARD_COLUMN+2)
     return chr(fil + ord('a')) + str(-rank + 1)
 
 
@@ -447,7 +455,7 @@ def print_pos(pos):
                       'r': '車', 'h': '马', 'e': '象', 'a': '士', 'k': '将', 'c': '砲', 'p': '卒', '.': '· '}
     pieces = chinese_pieces
     for i, row in enumerate(pos.board.split()):
-        print(' ', 9 - i, ' '.join(pieces.get(p, p) for p in row))
+        print(' ', BOARD_ROW - 1 - i, ' '.join(pieces.get(p, p) for p in row))
     if pieces == uni_pieces:
         print('    a b c d e f g h i \n\n')
     else:
@@ -499,7 +507,8 @@ def main():
 
         # The black player moves from a rotated position, so we have to
         # 'back rotate' the move before printing it.
-        print("My move:", render(153 - move[0]) + render(153 - move[1]))
+        print("My move:", render(
+            153 - move[0]) + render((BOARD_ROW+4)*(BOARD_COLUMN+2) - move[1]))
         hist.append(hist[-1].move(move))
 
 
