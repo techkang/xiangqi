@@ -1,11 +1,11 @@
 # 中国象棋 Python | Chinese Chess Python
-中国象棋Python版本，本项目主要借鉴了[sunfish](https://github.com/thomasahle/sunfish)
+
 ## 特性
 - 代码简洁：仅仅使用一百多行代码即实现了中国象棋，并具有简单对战功能。
 - 性能高效：经测试水平在初学者之上。
 
 ## 缺点
-- 现代竞技象棋有许多复杂的规则，例如不得长将，长吃等，参见[2011版象棋规则](www.xqbase.com/protocol/rule2011.pdf)。本程序仅实现了基本规则，未实现禁手。
+- 现代竞技象棋有许多复杂的规则，例如不得长将，长吃等，参见[2011版象棋规则](http://www.xqbase.com/protocol/rule2011.pdf)。本程序仅实现了基本规则，未实现禁手。
 - 没有引入随机参数，导致在相同局面下程序总是会有相同的输出。
 - 进攻欲望较低，与人对战“以守为攻”。
 
@@ -37,3 +37,12 @@ python sunfish_chinese.py
 如果不支持Unicode13
 
 ![chess_board_chinese](screenshot/chess_board_chinese.png)
+
+## 参考资料
+`sunfish_chinese.py`:
+- 算法部分，主要借鉴[sunfish](https://github.com/thomasahle/sunfish)
+- 子力价值判断及局面判断权重，主要使用了[Computer Chinese Chess](http://www.psung.org/xq/computer/2004CCC.pdf)
+
+`chinese_chess_board.oy`:
+- 棋盘绘制，主要参考[Unicode chessboard in a terminal](https://www.daniweb.com/programming/software-development/code/423640/unicode-chessboard-in-a-terminal)
+- FEN格式串介绍：[象棋百科全书](https://www.xqbase.com/protocol.htm)
