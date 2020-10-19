@@ -10,6 +10,10 @@ from itertools import count
 ###############################################################################
 # Piece-Square tables. Tune these to change sunfish's behaviour
 ###############################################################################
+uni_pieces = {'R': '🩤', 'H': '🩣', 'E': '🩢', 'A': '🩡', 'K': '🩠', 'C': '🩥', 'P': '🩦',
+              'r': '🩫', 'h': '🩪', 'e': '🩩', 'a': '🩨', 'k': '🩧', 'c': '🩬', 'p': '🩭', '.': '·'}
+chinese_pieces = {'R': '车', 'H': '马', 'E': '相', 'A': '仕', 'K': '帅', 'C': '炮', 'P': '兵',
+                  'r': '車', 'h': '马', 'e': '象', 'a': '士', 'k': '将', 'c': '砲', 'p': '卒', '.': '· '}
 
 BOARD_ROW = 10
 BOARD_COLUMN = 9
@@ -449,17 +453,34 @@ def render(i):
 
 def print_pos(pos):
     print()
-    uni_pieces = {'R': '🩤', 'H': '🩣', 'E': '🩢', 'A': '🩡', 'K': '🩠', 'C': '🩥', 'P': '🩦',
-                  'r': '🩫', 'h': '🩪', 'e': '🩩', 'a': '🩨', 'k': '🩧', 'c': '🩬', 'p': '🩭', '.': '·'}
-    chinese_pieces = {'R': '车', 'H': '马', 'E': '相', 'A': '仕', 'K': '帅', 'C': '炮', 'P': '兵',
-                      'r': '車', 'h': '马', 'e': '象', 'a': '士', 'k': '将', 'c': '砲', 'p': '卒', '.': '· '}
-    pieces = chinese_pieces
+    pieces = uni_pieces
     for i, row in enumerate(pos.board.split()):
         print(' ', BOARD_ROW - 1 - i, ' '.join(pieces.get(p, p) for p in row))
     if pieces == uni_pieces:
         print('    a b c d e f g h i \n\n')
     else:
         print('    a  b  c  d  e  f  g  h  i \n\n')
+
+
+def parse_move(move, board, is_red):
+    # import ipdb
+    # ipdb.set_trace()
+    number_chinese = dict(zip(range(1, 10), '一二三四五六七八九'))
+    name = chinese_pieces[board[move[0]] if is_red else board[move[0]].lower()]
+    row = BOARD_COLUMN + 1 - move[0] % (BOARD_COLUMN+2)
+    direction = move[0]//(BOARD_COLUMN+2)-move[1]//(BOARD_COLUMN+2)
+    index = int(direction/abs(direction)) if direction != 0 else 0
+    action = ['平', '进', '退'][index]
+    if index == 0 or board[move[0]].upper() == 'H':
+        destionation = BOARD_COLUMN + 1 - move[1] % (BOARD_COLUMN+2)
+    else:
+        destionation = abs(direction)
+    if is_red:
+        row = number_chinese[row]
+        destionation = number_chinese[destionation]
+    else:
+        row, destionation = str(row), str(destionation)
+    print(name+row+action+destionation)
 
 
 def main():
@@ -486,6 +507,7 @@ def main():
             else:
                 # Inform the user when invalid input (e.g. "help") is entered
                 print("Please enter a move like h2e2")
+        parse_move(move, hist[-1].board, True)
         hist.append(hist[-1].move(move))
 
         # After our move we rotate the board and print it again.
@@ -507,8 +529,8 @@ def main():
 
         # The black player moves from a rotated position, so we have to
         # 'back rotate' the move before printing it.
-        print("My move:", render(
-            153 - move[0]) + render((BOARD_ROW+4)*(BOARD_COLUMN+2) - move[1]))
+        print("My move: ", end='')
+        parse_move(move, hist[-1].board, False)
         hist.append(hist[-1].move(move))
 
 
