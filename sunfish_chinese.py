@@ -295,10 +295,10 @@ class Searcher:
         self.history = set()
         self.nodes = 0
 
-    def bound(self, pos, gamma, depth, root=True):
+    def bound(self, pos, mid, depth, root=True):
         """ returns r where
-                s(pos) <= r < gamma    if gamma > s(pos)
-                gamma <= r <= s(pos)   if gamma <= s(pos)"""
+                s(pos) <= r < mid    if mid > s(pos)
+                mid <= r <= s(pos)   if mid <= s(pos)"""
         self.nodes += 1
 
         # Depth <= 0 is QSearch. Here any position is searched as deeply as is needed for
@@ -329,9 +329,9 @@ class Searcher:
         # nodes as the current search.
         entry = self.tp_score.get(
             (pos, depth, root), Entry(-MATE_UPPER, MATE_UPPER))
-        if entry.lower >= gamma and (not root or self.tp_move.get(pos) is not None):
+        if entry.lower >= mid and (not root or self.tp_move.get(pos) is not None):
             return entry.lower
-        if entry.upper < gamma:
+        if entry.upper < mid:
             return entry.upper
 
         # Here extensions may be added
@@ -343,7 +343,7 @@ class Searcher:
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
             if depth > 0 and not root and any(c in pos.board for c in 'RHCP'):
-                yield None, -self.bound(pos.rotate(), 1 - gamma, depth - 3, root=False)
+                yield None, -self.bound(pos.rotate(), 1 - mid, depth - 3, root=False)
             # For QSearch we have a different kind of null-move, namely we can just stop
             # and not capture anything else.
             if depth == 0:
@@ -354,20 +354,20 @@ class Searcher:
             # will be non deterministic.
             killer = self.tp_move.get(pos)
             if killer and (depth > 0 or pos.value(killer) >= QS_LIMIT):
-                yield killer, -self.bound(pos.move(killer), 1 - gamma, depth - 1, root=False)
+                yield killer, -self.bound(pos.move(killer), 1 - mid, depth - 1, root=False)
             # Then all the other moves
             for move in sorted(pos.gen_moves(), key=pos.value, reverse=True):
                 # for val, move in sorted(((pos.value(move), move) for move in pos.gen_moves()), reverse=True):
                 # If depth == 0 we only try moves with high intrinsic score (captures and
                 # promotions). Otherwise we do all moves.
                 if depth > 0 or pos.value(move) >= QS_LIMIT:
-                    yield move, -self.bound(pos.move(move), 1 - gamma, depth - 1, root=False)
+                    yield move, -self.bound(pos.move(move), 1 - mid, depth - 1, root=False)
 
         # Run through the moves, shortcutting when possible
         best = -MATE_UPPER
         for move, score in moves():
             best = max(best, score)
-            if best >= gamma:
+            if best >= mid:
                 # Clear before setting, so we always have a value
                 if len(self.tp_move) > TABLE_SIZE:
                     self.tp_move.clear()
@@ -385,7 +385,7 @@ class Searcher:
         # This doesn't prevent sunfish from making a move that results in stalemate,
         # but only if depth == 1, so that's probably fair enough.
         # (Btw, at depth 1 we can also mate without realizing.)
-        if best < gamma and best < 0 and depth > 0:
+        if best < mid and best < 0 and depth > 0:
             def is_dead(pos): return any(pos.value(m) >=
                                          MATE_LOWER for m in pos.gen_moves())
             if all(is_dead(pos.move(m)) for m in pos.gen_moves()):
@@ -396,9 +396,9 @@ class Searcher:
         if len(self.tp_score) > TABLE_SIZE:
             self.tp_score.clear()
         # Table part 2
-        if best >= gamma:
+        if best >= mid:
             self.tp_score[pos, depth, root] = Entry(best, entry.upper)
-        if best < gamma:
+        if best < mid:
             self.tp_score[pos, depth, root] = Entry(entry.lower, best)
 
         return best
@@ -420,11 +420,11 @@ class Searcher:
             # better.
             lower, upper = -MATE_UPPER, MATE_UPPER
             while lower < upper - EVAL_ROUGHNESS:
-                gamma = (lower + upper + 1) // 2
-                score = self.bound(pos, gamma, depth)
-                if score >= gamma:
+                mid = (lower + upper + 1) // 2
+                score = self.bound(pos, mid, depth)
+                if score >= mid:
                     lower = score
-                if score < gamma:
+                if score < mid:
                     upper = score
             # We want to make sure the move to play hasn't been kicked out of the table,
             # So we make another call that must always fail high and thus produce a move.
@@ -465,13 +465,14 @@ def print_pos(pos):
 def parse_move(move, board, is_red):
     # import ipdb
     # ipdb.set_trace()
+    piece = board[move[0]]
     number_chinese = dict(zip(range(1, 10), '一二三四五六七八九'))
-    name = chinese_pieces[board[move[0]] if is_red else board[move[0]].lower()]
+    name = chinese_pieces[piece if is_red else piece.lower()]
     row = BOARD_COLUMN + 1 - move[0] % (BOARD_COLUMN+2)
     direction = move[0]//(BOARD_COLUMN+2)-move[1]//(BOARD_COLUMN+2)
     index = int(direction/abs(direction)) if direction != 0 else 0
     action = ['平', '进', '退'][index]
-    if index == 0 or board[move[0]].upper() == 'H':
+    if index == 0 or piece in 'AEH':
         destionation = BOARD_COLUMN + 1 - move[1] % (BOARD_COLUMN+2)
     else:
         destionation = abs(direction)
@@ -480,6 +481,14 @@ def parse_move(move, board, is_red):
         destionation = number_chinese[destionation]
     else:
         row, destionation = str(row), str(destionation)
+    if piece in 'CHPR':
+        all_row = [m.start() for m in re.finditer(piece, board) if m.start() % (
+            BOARD_COLUMN+2) == move[0] % (BOARD_COLUMN+2)]
+        if len(all_row) >= 2:
+            all_row.remove(move[0])
+            row = '前' if all_row[0] > move[0] else '后'
+            print(row+name+action+destionation)
+            return
     print(name+row+action+destionation)
 
 

@@ -3,6 +3,7 @@
 ## 特性
 - 代码简洁：仅仅使用一百多行代码即实现了中国象棋，并具有简单对战功能。
 - 性能高效：经测试水平在初学者之上。
+- 使用传统象棋表示方法来表示棋子移动。
 
 ## 缺点
 - 现代竞技象棋有许多复杂的规则，例如不得长将，长吃等，参见[2011版象棋规则](http://www.xqbase.com/protocol/rule2011.pdf)。本程序仅实现了基本规则，未实现禁手。
@@ -40,7 +41,8 @@ python sunfish_chinese.py
 
 ## 参考资料
 `sunfish_chinese.py`:
-- 算法部分，主要借鉴[sunfish](https://github.com/thomasahle/sunfish)
+- 算法及代码部分，主要借鉴[sunfish](https://github.com/thomasahle/sunfish)
+- 算法原理介绍：[MTD(f)算法](http://www.soongsky.com/othello/computer/alpha_beta.php)
 - 子力价值判断及局面判断权重，主要使用了[Computer Chinese Chess](http://www.psung.org/xq/computer/2004CCC.pdf)
 
 `chinese_chess_board.oy`:
