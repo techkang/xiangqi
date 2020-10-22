@@ -15,8 +15,10 @@ uni_pieces = {'R': '🩤', 'H': '🩣', 'E': '🩢', 'A': '🩡', 'K': '🩠', '
 chinese_pieces = {'R': '车', 'H': '马', 'E': '相', 'A': '仕', 'K': '帅', 'C': '炮', 'P': '兵',
                   'r': '車', 'h': '马', 'e': '象', 'a': '士', 'k': '将', 'c': '砲', 'p': '卒', '.': '· '}
 
-BOARD_ROW = 10
-BOARD_COLUMN = 9
+CHESS_ROW = 10
+CHESS_COLUMN = 9
+BOARD_ROW = CHESS_ROW+4
+BOARD_COLUMN = CHESS_COLUMN+2
 # king, advisor, elephant, horse, rook, pawn, cannon
 piece = {'K': 6000, 'A': 120, 'E': 120, 'H': 270, 'R': 600, 'P': 30, 'C': 285}
 pst = {
@@ -106,11 +108,19 @@ pst = {
         0, 3, 6, 9, 12, 9, 6, 3, 0,
     )
 }
+
+
+def padrow(row):
+    result = (0,) + tuple(x + piece[k] for x in row) + (0,)
+    return result
+
+
 # Pad tables and join piece and pst dictionaries
 for k, table in pst.items():
-    def padrow(row): return (0,) + tuple(x + piece[k] for x in row) + (0,)
-    pst[k] = sum((padrow(table[i * 9:i * 9 + 9]) for i in range(10)), ())
+    pst[k] = sum((padrow(table[i * CHESS_COLUMN:(i+1)*CHESS_COLUMN])
+                  for i in range(CHESS_ROW)), ())
     pst[k] = (0,) * 22 + pst[k] + (0,) * 22
+    pst[k] = pst[k][::-1]
 
 ###############################################################################
 # Global constants
@@ -136,8 +146,25 @@ initial = (
     '          \n'
 )
 
+initial = (
+    '          \n'
+    '          \n'
+    ' ....k....\n'
+    ' R........\n'
+    ' .........\n'
+    ' .........\n'
+    ' .........\n'
+    # river
+    ' .........\n'
+    ' .........\n'
+    ' .........\n'
+    ' .........\n'
+    ' ....K....\n'
+    '          \n'
+    '          \n'
+)
 # Lists of possible moves for each piece type.
-N, E, S, W = -(BOARD_COLUMN+2), 1, BOARD_COLUMN+2, -1
+N, E, S, W = -CHESS_COLUMN, 1, CHESS_COLUMN, -1
 directions = {
     'P': (N, W, E),
     'H': ((N, N + E), (N, N + W), (S, S + E), (S, S + W), (E, E + N), (E, E + S), (W, W + N), (W, W + S)),
@@ -173,7 +200,7 @@ DRAW_TEST = True
 
 class Position(namedtuple('Position', 'board score')):
     """ A state of a chess game
-    board -- a (BOARD_ROW+4)*(BOARD_COLUMN+2) char representation of the board
+    board -- a BOARD_ROW*BOARD_COLUMN char representation of the board
     score -- the board evaluation
     """
 
@@ -184,6 +211,7 @@ class Position(namedtuple('Position', 'board score')):
         for i, p in enumerate(self.board):
             if not p.isupper():
                 continue
+            print('',end='')
             for d in directions[p]:
                 cannon_flag = False
                 step = 0
@@ -215,30 +243,30 @@ class Position(namedtuple('Position', 'board score')):
                         break
                     # king and advisor should stay in palace
                     if p in ('A', 'K'):
-                        row, column = j // 11, j % 11
-                        if not (9 <= row <= 11 and 4 <= column <= 6):
+                        row, column = j // BOARD_COLUMN, j % BOARD_COLUMN
+                        if not (9 <= row <= BOARD_COLUMN and 4 <= column <= 6):
                             break
                     # elephant cannot go across river
-                    if p == 'E' and not 6 <= j // 11 <= 11:
+                    if p == 'E' and not 6 <= j // BOARD_COLUMN <= BOARD_COLUMN:
                         break
                     # pawn can move east or west only after crossing river
-                    if p == 'P' and j // 11 > 6 and d in (E, W):
+                    if p == 'P' and j // BOARD_COLUMN > 6 and d in (E, W):
                         break
                     # two kings cannot see each other
                     black_king = self.board.index('k')
                     red_king = self.board.index('K')
-                    if p == 'K' and black_king // 11 == j // 11:
+                    if p == 'K' and black_king % BOARD_COLUMN == j % BOARD_COLUMN:
                         index = j
-                        while index > self.board.index('k') - 11:
-                            index -= 11
+                        while index > self.board.index('k') + BOARD_COLUMN:
+                            index -= BOARD_COLUMN
                             if self.board[index] != '.':
                                 break
                         else:
                             break
-                    if black_king // 11 == red_king // 11:
+                    if black_king % BOARD_COLUMN == red_king % BOARD_COLUMN:
                         index = red_king
-                        while index > black_king - 11:
-                            index -= 11
+                        while index > black_king + BOARD_COLUMN:
+                            index -= BOARD_COLUMN
                             if self.board[index] != '.':
                                 break
                         else:
@@ -270,13 +298,12 @@ class Position(namedtuple('Position', 'board score')):
     def value(self, move):
         i, j = move
         p, q = self.board[i], self.board[j]
-        MOVE_COST = 5
+        MOVE_COST = 0
         # Actual move
         score = pst[p][j] - pst[p][i] - MOVE_COST
         # Capture
         if q.islower():
-            score += pst[q.upper()][(BOARD_ROW+4) *
-                                    (BOARD_COLUMN+2)-1 - j] + piece[q.upper()]
+            score += pst[q.upper()][CHESS_ROW * CHESS_COLUMN-1 - j]
         return score
 
 
@@ -293,13 +320,11 @@ class Searcher:
         self.tp_score = {}
         self.tp_move = {}
         self.history = set()
-        self.nodes = 0
 
     def bound(self, pos, mid, depth, root=True):
         """ returns r where
                 s(pos) <= r < mid    if mid > s(pos)
                 mid <= r <= s(pos)   if mid <= s(pos)"""
-        self.nodes += 1
 
         # Depth <= 0 is QSearch. Here any position is searched as deeply as is needed for
         # calmness, and from this point on there is no difference in behaviour depending on
@@ -405,7 +430,6 @@ class Searcher:
 
     def search(self, pos, history=()):
         """ Iterative deepening MTD-bi search """
-        self.nodes = 0
         if DRAW_TEST:
             self.history = set(history)
             # print('# Clearing table due to new history')
@@ -438,16 +462,16 @@ class Searcher:
 # User interface
 ###############################################################################
 
-A1 = BOARD_ROW*(BOARD_COLUMN+2)+1
+A1 = CHESS_ROW*BOARD_COLUMN+1
 
 
 def parse(c):
     fil, rank = ord(c[0]) - ord('a'), int(c[1]) - 1
-    return A1 + fil - (BOARD_COLUMN+2) * rank
+    return A1 + fil - BOARD_COLUMN * rank
 
 
 def render(i):
-    rank, fil = divmod(i - A1, BOARD_COLUMN+2)
+    rank, fil = divmod(i - A1, BOARD_COLUMN)
     return chr(fil + ord('a')) + str(-rank + 1)
 
 
@@ -455,7 +479,7 @@ def print_pos(pos):
     print()
     pieces = uni_pieces
     for i, row in enumerate(pos.board.split()):
-        print(' ', BOARD_ROW - 1 - i, ' '.join(pieces.get(p, p) for p in row))
+        print(' ', CHESS_ROW - 1 - i, ' '.join(pieces.get(p, p) for p in row))
     if pieces == uni_pieces:
         print('    a b c d e f g h i \n\n')
     else:
@@ -468,12 +492,12 @@ def parse_move(move, board, is_red):
     piece = board[move[0]]
     number_chinese = dict(zip(range(1, 10), '一二三四五六七八九'))
     name = chinese_pieces[piece if is_red else piece.lower()]
-    row = BOARD_COLUMN + 1 - move[0] % (BOARD_COLUMN+2)
-    direction = move[0]//(BOARD_COLUMN+2)-move[1]//(BOARD_COLUMN+2)
+    row = CHESS_COLUMN + 1 - move[0] % BOARD_COLUMN
+    direction = move[0]//BOARD_COLUMN-move[1]//BOARD_COLUMN
     index = int(direction/abs(direction)) if direction != 0 else 0
     action = ['平', '进', '退'][index]
     if index == 0 or piece in 'AEH':
-        destionation = BOARD_COLUMN + 1 - move[1] % (BOARD_COLUMN+2)
+        destionation = CHESS_COLUMN + 1 - move[1] % BOARD_COLUMN
     else:
         destionation = abs(direction)
     if is_red:
@@ -482,8 +506,8 @@ def parse_move(move, board, is_red):
     else:
         row, destionation = str(row), str(destionation)
     if piece in 'CHPR':
-        all_row = [m.start() for m in re.finditer(piece, board) if m.start() % (
-            BOARD_COLUMN+2) == move[0] % (BOARD_COLUMN+2)]
+        all_row = [m.start() for m in re.finditer(piece, board)
+                   if m.start() % BOARD_COLUMN == move[0] % BOARD_COLUMN]
         if len(all_row) >= 2:
             all_row.remove(move[0])
             row = '前' if all_row[0] > move[0] else '后'
@@ -507,6 +531,7 @@ def main():
 
         while True:
             match = re.match('([a-i][0-9])' * 2, input('Your move: '))
+            # match = re.match('([a-i][0-9])' * 2, 'e0d0')
             if match:
                 move = parse(match.group(1)), parse(match.group(2))
                 if move not in hist[-1].gen_moves():
