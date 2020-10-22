@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import argparse
 import re
 import time
 from collections import namedtuple
@@ -23,89 +23,89 @@ BOARD_COLUMN = CHESS_COLUMN+2
 piece = {'K': 6000, 'A': 120, 'E': 120, 'H': 270, 'R': 600, 'P': 30, 'C': 285}
 pst = {
     'K': (
-        0, 0, 0, 1, 5, 1, 0, 0, 0,
-        0, 0, 0, -8, -8, -8, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, -9, -9, -9, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, -8, -8, -8, 0, 0, 0,
+        0, 0, 0, 1, 5, 1, 0, 0, 0,
     ),
     'A': (
         0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 3, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, -1, 0, -1, 0, 0, 0,
+        0, 0, 0, 0, 3, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0
     ),
     'E': (
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
-        -2, 0, 0, 0, 3, 0, 0, 0, -2,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, -1, 0, 0, 0, -1, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        -2, 0, 0, 0, 3, 0, 0, 0, -2,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0,
     ),
     'H': (
-        0, -4, 0, 0, 0, 0, 0, -4, 0,
-        0, 2, 4, 4, -2, 4, 4, 2, 0,
-        4, 2, 8, 8, 6, 8, 8, 2, 4,
-        2, 6, 8, 6, 10, 6, 8, 6, 2,
-        4, 12, 16, 14, 12, 14, 16, 12, 4,
-        6, 16, 14, 18, 16, 18, 14, 16, 6,
-        8, 24, 18, 24, 20, 24, 18, 24, 8,
-        12, 14, 16, 20, 18, 20, 16, 14, 12,
-        4, 10, 28, 16, 8, 16, 28, 10, 4,
         4, 8, 16, 12, 4, 12, 16, 8, 4,
+        4, 10, 28, 16, 8, 16, 28, 10, 4,
+        12, 14, 16, 20, 18, 20, 16, 14, 12,
+        8, 24, 18, 24, 20, 24, 18, 24, 8,
+        6, 16, 14, 18, 16, 18, 14, 16, 6,
+        4, 12, 16, 14, 12, 14, 16, 12, 4,
+        2, 6, 8, 6, 10, 6, 8, 6, 2,
+        4, 2, 8, 8, 6, 8, 8, 2, 4,
+        0, 2, 4, 4, -10, 4, 4, 2, 0,
+        0, -4, 0, 0, 0, 0, 0, -4, 0,
 
     ),
     'R': (
-        -2, 10, 6, 14, 12, 14, 6, 10, -2,
-        8, 4, 8, 16, 8, 16, 8, 4, 8,
-        4, 8, 6, 14, 12, 14, 6, 8, 4,
-        6, 10, 8, 14, 14, 14, 8, 10, 6,
-        12, 16, 14, 20, 20, 20, 14, 16, 12,
-        12, 14, 12, 18, 18, 18, 12, 14, 12,
-        12, 18, 16, 22, 22, 22, 16, 18, 12,
-        12, 12, 12, 18, 18, 18, 12, 12, 12,
-        16, 20, 18, 24, 26, 24, 18, 20, 16,
         14, 14, 12, 18, 16, 18, 12, 14, 14,
+        16, 20, 18, 24, 26, 24, 18, 20, 16,
+        12, 12, 12, 18, 18, 18, 12, 12, 12,
+        12, 18, 16, 22, 22, 22, 16, 18, 12,
+        12, 14, 12, 18, 18, 18, 12, 14, 12,
+        12, 16, 14, 20, 20, 20, 14, 16, 12,
+        6, 10, 8, 14, 14, 14, 8, 10, 6,
+        4, 8, 6, 14, 12, 14, 6, 8, 4,
+        8, 4, 8, 16, 8, 16, 8, 4, 8,
+        -2, 10, 6, 14, 12, 14, 6, 10, -2,
     ),
     'C': (
-        0, 0, 2, 6, 6, 6, 2, 0, 0,
-        0, 2, 4, 6, 6, 6, 4, 2, 0,
-        4, 0, 8, 6, 19, 6, 8, 0, 4,
-        0, 0, 0, 2, 4, 2, 0, 0, 0,
-        -2, 0, 4, 2, 6, 2, 4, 0, -2,
-        0, 0, 0, 2, 8, 2, 0, 0, 0,
-        0, 0, -2, 4, 10, 4, -2, 0, 0,
-        2, 2, 0, -10, -8, -10, 0, 2, 2,
-        2, 2, 0, -4, -14, -4, 0, 2, 2,
         6, 4, 0, -10, -12, -10, 0, 4, 6,
+        2, 2, 0, -4, -14, -4, 0, 2, 2,
+        2, 2, 0, -10, -8, -10, 0, 2, 2,
+        0, 0, -2, 4, 10, 4, -2, 0, 0,
+        0, 0, 0, 2, 8, 2, 0, 0, 0,
+        -2, 0, 4, 2, 6, 2, 4, 0, -2,
+        0, 0, 0, 2, 4, 2, 0, 0, 0,
+        4, 0, 8, 6, 19, 6, 8, 0, 4,
+        0, 2, 4, 6, 6, 6, 4, 2, 0,
+        0, 0, 2, 6, 6, 6, 2, 0, 0,
     ),
     'P': (
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, -2, 0, 4, 0, -2, 0, 0,
-        2, 0, 8, 0, 8, 0, 8, 0, 2,
-        6, 12, 18, 18, 20, 18, 18, 12, 6,
-        10, 20, 30, 34, 40, 34, 30, 20, 10,
-        14, 26, 42, 60, 80, 60, 42, 26, 14,
-        18, 36, 56, 80, 120, 80, 56, 36, 18,
         0, 3, 6, 9, 12, 9, 6, 3, 0,
+        18, 36, 56, 80, 120, 80, 56, 36, 18,
+        14, 26, 42, 60, 80, 60, 42, 26, 14,
+        10, 20, 30, 34, 40, 34, 30, 20, 10,
+        6, 12, 18, 18, 20, 18, 18, 12, 6,
+        2, 0, 8, 0, 8, 0, 8, 0, 2,
+        0, 0, -2, 0, 4, 0, -2, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
     )
 }
 
@@ -120,7 +120,7 @@ for k, table in pst.items():
     pst[k] = sum((padrow(table[i * CHESS_COLUMN:(i+1)*CHESS_COLUMN])
                   for i in range(CHESS_ROW)), ())
     pst[k] = (0,) * 22 + pst[k] + (0,) * 22
-    pst[k] = pst[k][::-1]
+    pst[k] = pst[k]
 
 ###############################################################################
 # Global constants
@@ -146,25 +146,8 @@ initial = (
     '          \n'
 )
 
-initial = (
-    '          \n'
-    '          \n'
-    ' ....k....\n'
-    ' R........\n'
-    ' .........\n'
-    ' .........\n'
-    ' .........\n'
-    # river
-    ' .........\n'
-    ' .........\n'
-    ' .........\n'
-    ' .........\n'
-    ' ....K....\n'
-    '          \n'
-    '          \n'
-)
 # Lists of possible moves for each piece type.
-N, E, S, W = -CHESS_COLUMN, 1, CHESS_COLUMN, -1
+N, E, S, W = -BOARD_COLUMN, 1, BOARD_COLUMN, -1
 directions = {
     'P': (N, W, E),
     'H': ((N, N + E), (N, N + W), (S, S + E), (S, S + W), (E, E + N), (E, E + S), (W, W + N), (W, W + S)),
@@ -211,7 +194,6 @@ class Position(namedtuple('Position', 'board score')):
         for i, p in enumerate(self.board):
             if not p.isupper():
                 continue
-            print('',end='')
             for d in directions[p]:
                 cannon_flag = False
                 step = 0
@@ -254,22 +236,12 @@ class Position(namedtuple('Position', 'board score')):
                         break
                     # two kings cannot see each other
                     black_king = self.board.index('k')
-                    red_king = self.board.index('K')
-                    if p == 'K' and black_king % BOARD_COLUMN == j % BOARD_COLUMN:
-                        index = j
-                        while index > self.board.index('k') + BOARD_COLUMN:
-                            index -= BOARD_COLUMN
-                            if self.board[index] != '.':
-                                break
-                        else:
-                            break
+                    if p == 'K':
+                        red_king = j
+                    else:
+                        red_king = self.board.index('K')
                     if black_king % BOARD_COLUMN == red_king % BOARD_COLUMN:
-                        index = red_king
-                        while index > black_king + BOARD_COLUMN:
-                            index -= BOARD_COLUMN
-                            if self.board[index] != '.':
-                                break
-                        else:
+                        if not any(piece != '.' for piece in self.board[black_king+BOARD_COLUMN:red_king:BOARD_COLUMN]):
                             break
 
                     # Move it
@@ -279,8 +251,7 @@ class Position(namedtuple('Position', 'board score')):
 
     def rotate(self):
         """ Rotates the board"""
-        return Position(
-            self.board[::-1].swapcase(), -self.score)
+        return Position(self.board[::-1].swapcase(), -self.score)
 
     def put(self, board, i, p):
         return board[:i] + p + board[i + 1:]
@@ -475,15 +446,16 @@ def render(i):
     return chr(fil + ord('a')) + str(-rank + 1)
 
 
-def print_pos(pos):
+def print_pos(pos, width=2, piece_type='unicode'):
     print()
-    pieces = uni_pieces
+    if piece_type == 'unicode':
+        pieces = uni_pieces
+    else:
+        pieces = chinese_pieces
+    space = ' '*width
     for i, row in enumerate(pos.board.split()):
         print(' ', CHESS_ROW - 1 - i, ' '.join(pieces.get(p, p) for p in row))
-    if pieces == uni_pieces:
-        print('    a b c d e f g h i \n\n')
-    else:
-        print('    a  b  c  d  e  f  g  h  i \n\n')
+    print('    '+space.join('abcdefghi\n'))
 
 
 def parse_move(move, board, is_red):
@@ -516,11 +488,11 @@ def parse_move(move, board, is_red):
     print(name+row+action+destionation)
 
 
-def main():
+def main(arg):
     hist = [Position(initial, 0)]
     searcher = Searcher()
     while True:
-        print_pos(hist[-1])
+        print_pos(hist[-1], arg.width, arg.piece)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You lost")
@@ -546,7 +518,7 @@ def main():
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
-        print_pos(hist[-1].rotate())
+        print_pos(hist[-1].rotate(), arg.width, arg.piece)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You won")
@@ -569,4 +541,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="xiangqi(Chinese Chess)")
+    parser.add_argument('-p', '--piece', default='unicode', type=str, choices=['unicode', 'chinese'],
+                        help="Choose unicode if you can distringuish these two character:🩤, 🩣. Otherwise choose chinese.")
+    parser.add_argument('-w', '--width', type=int, default=1,
+                        help='num of space between two pieces.')
+    main(parser.parse_args())

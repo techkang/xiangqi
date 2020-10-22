@@ -8,24 +8,23 @@
 ## 缺点
 - 现代竞技象棋有许多复杂的规则，例如不得长将，长吃等，参见[2011版象棋规则](http://www.xqbase.com/protocol/rule2011.pdf)。本程序仅实现了基本规则，未实现禁手。
 - 没有引入随机参数，导致在相同局面下程序总是会有相同的输出。
-- 进攻欲望较低，与人对战“以守为攻”。
 
 ## 注意
-- 本程序使用的象棋棋子来自Unicode13中的[棋类符号](https://www.unicode.org/charts/PDF/U1FA00.pdf)，如果你的电脑能正确显示以下几个字符：🩠 🩡 🩢 🩣 🩤 🩦 🩥 🩧 🩨 🩩 🩪 🩫 🩭 🩬，则可以最大程度上利用本程序，否则请修改`sunfish_chinese.py`448行为`pieces = chinese_pieces`。
-- 因为字体关系，有些字体中文字符长度不等于两个英文字符长度，所以显示效果因字体而异，可以手动调节`sunfish_chinese.py`中452或454行获得最佳显示效果。
+- 本程序使用的象棋棋子来自Unicode13中的[棋类符号](https://www.unicode.org/charts/PDF/U1FA00.pdf)，如果你的电脑能正确显示以下几个字符：🩠 🩡 🩢 🩣 🩤 🩦 🩥 🩧 🩨 🩩 🩪 🩫 🩭 🩬，则可以最大程度上利用本程序，否则请在运行程序时设定棋子编码参数`p/piece`为`chinese`，即`python sunfish_chinese.py -p chinese`或`python sunfish_chinese.py --piece chinese`。
+- 因为字体关系，有些字体中文字符长度不等于两个英文字符长度，所以显示的棋盘可能没有对其，可以通过设定宽度参数`w/width`来进行调节，即`python sunfish_chinese.py -w 2`或`python sunfish_chinese.py --width 2`。
 - 测试运行环境为Ubuntu20.04，使用系统terminal，字体为Monospace Regular。
 
 ## 运行截图
 
 ![xiangqi_unicode](screenshot/xiangqi_unicode.png)
 
-如果设置`pieces = chinese_pieces`
+如果添加设置参数`--pieces chinese`
 
 ![xaingqi_chinese](screenshot/xiangqi_chinese.png)
 
 # 运行程序
 ```shell
-python sunfish_chinese.py
+python sunfish_chinese.py -p unicode -w 1
 ```
 
 ## 棋盘显示
