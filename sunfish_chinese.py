@@ -274,7 +274,7 @@ class Position(namedtuple('Position', 'board score')):
         score = pst[p][j] - pst[p][i] - MOVE_COST
         # Capture
         if q.islower():
-            score += pst[q.upper()][CHESS_ROW * CHESS_COLUMN-1 - j]
+            score += pst[q.upper()][BOARD_ROW * BOARD_COLUMN-1 - j]
         return score
 
 
